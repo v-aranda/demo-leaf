@@ -1,3 +1,11 @@
+:root{
+    --primary: #d054ff;
+    --primary-border: ##d054ff;
+    --primary-btn-color: #fff;
+    --primary-btn-shadow: 0 3px 6px 0 rgb(64 213 125 / 30%);
+}
+
+
 /* Estilos gerais */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -131,8 +139,8 @@ h1 {
 
 #locate-btn {
     padding: 10px 20px;
-    background: #4285f4;
-    color: white;
+    /* background: var(--primary); */
+    /* color: white; */
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -140,6 +148,12 @@ h1 {
     display: flex;
     align-items: center;
     gap: 8px;
+
+    color: var(--primary-btn-color);
+    background-color: var(--primary);
+    border-color: var(--primary-border);
+    box-shadow: var(--primary-btn-shadow);
+    transition: all 0.3s;
 }
 
 #locate-btn:hover {
@@ -164,6 +178,7 @@ h1 {
     border-radius: 4px;
     font-size: 14px;
 }
+
 
 /* Loading */
 #global-loading {
@@ -215,7 +230,7 @@ h1 {
 }
 
 .current-user-marker {
-    background: #4285f4;
+    background: var(--primary);
     border-radius: 50%;
     border: 3px solid white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
@@ -258,7 +273,7 @@ h1 {
 
 /* Self Location */
 .current-user-marker {
-    background-color: #4285f4;
+    background-color: var(--primary);
     border-radius: 50%;
     border: 3px solid white;
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
@@ -278,7 +293,7 @@ h1 {
     transform: translateX(-50%);
     border-width: 10px 8px 0;
     border-style: solid;
-    border-color: #4285f4 transparent transparent;
+    border-color: var(--primary) transparent transparent;
 }
 
 /* Responsive Design */

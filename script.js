@@ -86,11 +86,21 @@ const businesses = [
         id: 1001,
         name: "Loja Central",
         type: "business",
-        photo: "https://www.vipsportsbr.com.br/escola/public/uploads/logos/DADqFoL0M14zibRHk8y1O0CqGSQXTBL64iFEf21X.png",
+        photo: "https://images.vexels.com/media/users/3/142789/isolated/preview/2bfb04ad814c4995f0c537c68db5cd0b-logotipo-do-circulo-multicolorido.png",
         category: "Varejo",
-        location: { lat: -23.551, lng: -46.631 },
+        postalCode: "01311-000", // CEP da Av. Paulista, SP
         address: "Av. Paulista, 1000"
-    }
+    },
+    {
+        id: 1002,
+        name: "Teste Maceió",
+        type: "business",
+        photo: "https://marketplace.canva.com/EAGPJqKo-g0/1/0/1600w/canva-logo-simples-circular-esmaltaria-preto-tlIdkPoPItQ.jpg",
+        category: "Varejo",
+        postalCode: "57035-690", // CEP da Av. Paulista, SP
+        address: "Av. Paulista, 1000"
+    },
+    // ... outros negócios
 ];
 
 // Controle de Rate Limit para a API Nominatim
@@ -181,6 +191,43 @@ const GeocodeService = {
             });
         } finally {
             setTimeout(() => this.processQueue(), 0);
+        }
+    },
+    async geocodePostalCode(postalCode) {
+        const cacheKey = `postal_${postalCode}`;
+        
+        // Verifica o cache primeiro
+        const cached = GeoCache.get(cacheKey);
+        if (cached) {
+            console.log('Retornando CEP do cache:', postalCode);
+            return cached;
+        }
+
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?postalcode=${postalCode}&format=json&country=Brasil`
+            );
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            
+            if (data.length === 0) {
+                throw new Error("CEP não encontrado");
+            }
+
+            const result = {
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon),
+                address: data[0].display_name
+            };
+
+            GeoCache.set(cacheKey, result);
+            return result;
+
+        } catch (error) {
+            console.error("Erro no geocode do CEP:", error);
+            return null;
         }
     }
 };
@@ -338,6 +385,31 @@ class LocationManager {
         const key = `${coords.lat},${coords.lng}`;
         return this.locations.get(key) || null;
     }
+
+    addBusinessLocation(business) {
+        if (!business.location) return;
+        
+        const details = {
+            coords: business.location,
+            city: this.extractCityFromAddress(business.address),
+            state: this.extractStateFromAddress(business.address),
+            country: "Brasil"
+        };
+        
+        this.addLocation(details);
+    }
+
+    extractCityFromAddress(address) {
+        // Exemplo: "Av. Paulista, 1000 - São Paulo/SP"
+        const match = address.match(/\s-\s([^\/]+)\//);
+        return match ? match[1].trim() : 'N/A';
+    }
+
+    extractStateFromAddress(address) {
+        // Exemplo: "Av. Paulista, 1000 - São Paulo/SP"
+        const match = address.match(/\/\s*([A-Z]{2})\b/);
+        return match ? match[1].trim() : 'N/A';
+    }
 }
 // Funções do Mapa
 const MapManager = {
@@ -425,9 +497,9 @@ const MapManager = {
             currentUserMarker = L.marker([coords.lat, coords.lng], {
                 icon: L.divIcon({
                     className: 'current-user-marker',
-                    html: '📍',
+                    html:'⚪',
                     iconSize: [30, 30],
-                    iconAnchor: [15, 30]
+                    iconAnchor: [20, 20]
                 })
             }).addTo(map);
 
@@ -556,6 +628,40 @@ const EntityManager = {
         return item;
     },
 
+    async loadBusinesses() {
+        UI.showLoading();
+        
+        try {
+            for (const business of businesses) {
+                if (business.postalCode) {
+                    const location = await GeocodeService.geocodePostalCode(business.postalCode);
+                    
+                    if (location) {
+                        business.location = { 
+                            lat: location.lat, 
+                            lng: location.lng 
+                        };
+                        
+                        // Adiciona ao LocationManager
+                        locationManager.addBusinessLocation(business);
+                    }
+                }
+            }
+            
+            // Cria marcadores após processar todos
+            businessMarkers = businesses
+                .filter(b => b.location)
+                .map(business => MapManager.createBusinessMarker(business));
+            
+            businessMarkers.forEach(marker => marker.addTo(map));
+            
+        } catch (error) {
+            console.error("Erro ao carregar negócios:", error);
+        } finally {
+            UI.hideLoading();
+        }
+    },
+
     updateEntityList(entities) {
         const container = document.getElementById('items-container');
         container.innerHTML = '';
@@ -669,15 +775,41 @@ function setupEventListeners() {
 
 
 // INICIALIZAÇÃO
+// INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Inicializa componentes
         MapManager.init();
         locationManager = new LocationManager();
 
-        // Carrega dados iniciais
-        await locationManager.init([...users, ...businesses]);
+        // 1. Processa usuários (que já tem coordenadas)
+        await locationManager.init(users); // Só usuários primeiro
+        
+        // 2. Processa negócios (com conversão de CEP para coordenadas)
+        for (const business of businesses) {
+            if (business.postalCode && !business.location) {
+                try {
+                    const geoData = await GeocodeService.geocodePostalCode(business.postalCode);
+                    if (geoData) {
+                        business.location = { 
+                            lat: geoData.lat, 
+                            lng: geoData.lng 
+                        };
+                        // Adiciona informações de localização ao manager
+                        locationManager.addBusinessLocation(business);
+                    }
+                } catch (error) {
+                    console.error(`Erro ao processar CEP ${business.postalCode}:`, error);
+                }
+            }
+        }
+
+        // 3. Carrega todos os dados no mapa e interface
         await EntityManager.loadAll();
+
+        // 4. Atualiza filtros com os novos dados
+        locationManager.populateCountries();
+        EntityManager.applyFilters();
 
         // Configura eventos
         setupEventListeners();
