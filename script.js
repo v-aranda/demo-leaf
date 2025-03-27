@@ -389,14 +389,26 @@ const MapManager = {
     },
 
     async locateUser() {
-        UI.updateStatus("Obtendo localização...");
+        UI.updateStatus("Obtendo sua localização...");
+        UI.showLoading();
 
         try {
+            // Verifica se o navegador suporta geolocalização
+            if (!navigator.geolocation) {
+                throw new Error("Geolocalização não suportada pelo navegador");
+            }
+
+            // Promisify a geolocation API
             const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    enableHighAccuracy: true,
-                    timeout: 10000
-                });
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
             });
 
             const coords = {
@@ -404,8 +416,12 @@ const MapManager = {
                 lng: position.coords.longitude
             };
 
-            if (currentUserMarker) map.removeLayer(currentUserMarker);
+            // Remove marcador anterior se existir
+            if (currentUserMarker) {
+                map.removeLayer(currentUserMarker);
+            }
 
+            // Cria novo marcador
             currentUserMarker = L.marker([coords.lat, coords.lng], {
                 icon: L.divIcon({
                     className: 'current-user-marker',
@@ -415,16 +431,41 @@ const MapManager = {
                 })
             }).addTo(map);
 
-            map.setView([coords.lat, coords.lng], 12);
-            UI.updateStatus(`Localização: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+            // Centraliza o mapa
+            map.setView([coords.lat, coords.lng], 15);
+
+            // Atualiza status
+            UI.updateStatus(`Você está aqui: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+
+            // Opcional: Faz reverse geocode para mostrar o endereço
+            try {
+                const location = await GeocodeService.reverseGeocode(coords);
+                if (location && location.city !== 'N/A') {
+                    UI.updateStatus(`Você está em ${location.city}, ${location.state}`);
+                }
+            } catch (e) {
+                console.log("Não foi possível obter endereço", e);
+            }
+
+            return coords;
 
         } catch (error) {
+            console.error("Erro na geolocalização:", error);
+
             const messages = {
-                1: "Permissão negada",
+                1: "Permissão de localização negada pelo usuário",
                 2: "Localização indisponível",
-                3: "Tempo esgotado"
+                3: "Tempo de solicitação excedido"
             };
-            UI.updateStatus(`Erro: ${messages[error.code] || "Erro desconhecido"}`);
+
+            UI.updateStatus(messages[error.code] || "Não foi possível determinar sua localização");
+
+            // Centraliza em uma localização padrão se falhar
+            map.setView([-15.7889, -47.8799], 4);
+            return null;
+
+        } finally {
+            UI.hideLoading();
         }
     }
 };
@@ -484,11 +525,11 @@ const EntityManager = {
         const item = document.createElement('div');
         item.className = `entity-item ${entity.type}`;
         item.dataset.entityId = entity.id;
-        
+
         // Busca a localização CORRETA - usando o locationManager
         const location = locationManager.getLocation(entity.location) || {};
         const icon = entity.type === 'user' ? '👤' : '🏢';
-        
+
         item.innerHTML = `
             <img class="entity-image" src="${entity.photo}" alt="${entity.name}">
             <div class="entity-info">
@@ -497,21 +538,21 @@ const EntityManager = {
             </div>
             <div class="entity-type-icon">${icon}</div>
         `;
-    
+
         item.addEventListener('click', () => {
             document.querySelectorAll('.entity-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-            
-            const marker = entity.type === 'user' 
+
+            const marker = entity.type === 'user'
                 ? userMarkers.find(m => m.entity.id === entity.id)
                 : businessMarkers.find(m => m.entity.id === entity.id);
-                
+
             if (marker) {
                 map.setView(marker.getLatLng(), 12);
                 marker.openPopup();
             }
         });
-    
+
         return item;
     },
 
@@ -590,34 +631,59 @@ function clearInvalidCache() {
     localStorage.removeItem('geocode_cache_v1');
 }
 
+function setupEventListeners() {
+    // Configura eventos
+    document.getElementById('user-search').addEventListener('input', () => EntityManager.applyFilters());
+    document.getElementById('filter-type').addEventListener('change', () => EntityManager.applyFilters());
+    document.getElementById('country-select').addEventListener('change', (e) => {
+        locationManager.populateStates(e.target.value);
+        EntityManager.applyFilters();
+    });
+    document.getElementById('state-select').addEventListener('change', (e) => {
+        const country = document.getElementById('country-select').value;
+        locationManager.populateCities(country, e.target.value);
+        EntityManager.applyFilters();
+    });
+    document.getElementById('city-select').addEventListener('change', () => EntityManager.applyFilters());
 
 
-// Inicialização
+    // Botão de localização manual
+    document.getElementById('locate-btn').addEventListener('click', async () => {
+        const coords = await MapManager.locateUser();
+        if (coords) {
+            // Opcional: Atualiza filtros para mostrar itens próximos
+            const location = await GeocodeService.reverseGeocode(coords);
+            if (location) {
+                document.getElementById('country-select').value = location.country;
+                document.getElementById('state-select').value = location.state;
+                document.getElementById('city-select').value = location.city;
+                EntityManager.applyFilters();
+            }
+        }
+    });
+}
+
+
+
+
+
+
+// INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        clearInvalidCache();
+        // Inicializa componentes
         MapManager.init();
-
-        // Inicializa o LocationManager
         locationManager = new LocationManager();
+
+        // Carrega dados iniciais
         await locationManager.init([...users, ...businesses]);
+        await EntityManager.loadAll();
 
         // Configura eventos
-        // Modifique os event listeners para:
-        document.getElementById('user-search').addEventListener('input', () => EntityManager.applyFilters());
-        document.getElementById('filter-type').addEventListener('change', () => EntityManager.applyFilters());
-        document.getElementById('country-select').addEventListener('change', (e) => {
-            locationManager.populateStates(e.target.value);
-            EntityManager.applyFilters();
-        });
-        document.getElementById('state-select').addEventListener('change', (e) => {
-            const country = document.getElementById('country-select').value;
-            locationManager.populateCities(country, e.target.value);
-            EntityManager.applyFilters();
-        });
-        document.getElementById('city-select').addEventListener('change', () => EntityManager.applyFilters());
-        // Carrega dados iniciais
-        await EntityManager.loadAll();
+        setupEventListeners();
+
+        // Dispara geolocalização automática
+        await MapManager.locateUser();
 
     } catch (error) {
         console.error("Erro na inicialização:", error);
