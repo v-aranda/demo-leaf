@@ -65,7 +65,7 @@ GeoCache.init();
 const users = [
     {
         id: 1,
-        name: "Paulo Alves",
+        name: "Teste Aranda",
         type: "user",
         photo: "https://randomuser.me/api/portraits/men/31.jpg",
         location: { lat: -23.5505, lng: -46.6333 },
