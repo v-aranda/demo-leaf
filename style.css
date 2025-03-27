@@ -225,3 +225,33 @@ h1 {
     color: white;
     font-size: 16px;
 }
+
+
+/* filter additions */
+.filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: flex;
+    flex-grow: 1;
+    gap: 10px;
+}
+
+.filter-select {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: white;
+    min-width: 120px;
+}
+
+@media (max-width: 768px) {
+    .filter-group {
+        flex-direction: column;
+    }
+}
