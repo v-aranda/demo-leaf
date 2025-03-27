@@ -1,0 +1,227 @@
+/* Estilos gerais */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Mapa */
+#map {
+    height: 500px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Lista de entidades */
+.entities-list {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.entity-item {
+    display: grid;
+    grid-template-columns: 50px 1fr 30px;
+    gap: 15px;
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.entity-item:hover {
+    background-color: #f5f7fa;
+}
+
+.entity-item.active {
+    background-color: #e3f2fd;
+}
+
+.entity-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.business .entity-image {
+    border-radius: 8px;
+}
+
+.entity-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.entity-name {
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.entity-location {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.entity-type-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+}
+
+/* Popups */
+.leaflet-popup-content {
+    min-width: 200px;
+    margin: 10px;
+}
+
+.user-popup, .business-popup {
+    text-align: center;
+}
+
+.popup-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 3px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.business-popup .popup-avatar {
+    border-radius: 8px;
+}
+
+/* Controles */
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+#locate-btn {
+    padding: 10px 20px;
+    background: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#locate-btn:hover {
+    background: #3367d6;
+}
+
+#status {
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* Filtros */
+.filter-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+#user-search, #filter-type {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Loading */
+#global-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.loading-overlay {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.loading-spinner {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Marcadores */
+.user-marker {
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.business-marker {
+    border: 3px solid white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.current-user-marker {
+    background: #4285f4;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+}
